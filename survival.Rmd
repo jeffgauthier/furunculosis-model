@@ -1,0 +1,74 @@
+---
+title: "Survival analysis"
+author: "JG 5/24/18"
+subtitle: Furunculosis challenge with A.sal. 890054
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+This analysis details the survival dynamics of all fish in the infection challenge, along with statistical analysis of the data.
+
+# 1 - Input data
+
+```{r}
+# load data
+challenge <- read.table("data_IC.csv", header=TRUE, stringsAsFactors = T)
+
+#to only keep true furunculosis deaths (1) and survivors (0)
+challenge <- subset(challenge, challenge$Death_Category <= 1) 
+
+# set Baseline (control) as reference level
+challenge$Treatment <- factor(challenge$Treatment, levels=c("Infected", "Baseline"))
+
+# only keep cohabitant fish
+cohabitants <- subset(challenge, challenge$IP_Injected %in% "No")
+
+# subset carrier fish only
+carriers <- subset(challenge, challenge$IP_Injected %in% "Yes")
+
+# view summary
+summary(cohabitants)
+summary(carriers)
+```
+
+
+
+
+************************
+
+# 2 - Survival analysis
+
+## 2.1 - Kaplan-Meier survival curves
+
+Here below are plots of the Kaplan-Meier statistic with 99% confidence intervals. K-M estimates survival probability as a function of cumulative deaths over the amount of individuals at risk for each day post-infection.
+
+```{r}
+library(ggplot2)
+library(survival)
+library(survminer)
+
+# survival fit (cohabs)
+cohab <- survfit(Surv(Time_DPI, Death_Category)~Treatment, data=cohabitants, conf.int = 0.99)
+summary(cohab)
+ggsurvplot(cohab, main="Survival per treatment", pval=TRUE, conf.int=TRUE, risk.table=TRUE)
+dev.copy(pdf, "survival_cohabitants.pdf")
+dev.off()
+
+# survival fit (carriers)
+carr <- survfit(Surv(Time_DPI, Death_Category)~Treatment, data=carriers, conf.int = 0.99)
+summary(carr)
+ggsurvplot(carr, main="Survival per treatment", pval=TRUE, conf.int=TRUE, risk.table=TRUE)
+dev.copy(pdf, "survival_carriers.pdf")
+dev.off()
+
+# survival fit (all)
+sfit <- survfit(Surv(Time_DPI, Death_Category)~Treatment, data=challenge, conf.int = 0.99)
+summary(sfit)
+ggsurvplot(sfit, main="Survival per treatment", pval=TRUE, conf.int=TRUE, risk.table=TRUE)
+dev.copy(pdf, "survival_all.pdf")
+dev.off()
+
+```
+
